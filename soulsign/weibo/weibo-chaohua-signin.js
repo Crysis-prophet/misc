@@ -2,7 +2,7 @@
 // @name              微博超话批量签到
 // @namespace         https://github.com/inu1255/soulsign-chrome
 // @version           1.0.0
-// @author            KaleoFeng
+// @author            Fan-zhendong
 // @loginURL          https://weibo.com
 // @expire            900e3
 // @domain            weibo.com
@@ -15,12 +15,12 @@
 // hname 超话名称
 let chaohuas = [
   {
-    "hid": "100808db06c78d1e24cf708a14ce81c9b617ec",
-    "hname": "测试超话"
+    "hid": "1008080391332928de4da0860b025d281356e1",
+    "hname": "樊振东超话"
   },
   {
-    "hid": "1008084b97c8f5ab54d661a331566ab64bf9d6",
-    "hname": "趣味测试超话"
+    "hid": "",
+    "hname": "超话"
   }
 ];
 
