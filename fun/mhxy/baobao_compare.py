@@ -26,6 +26,9 @@ C_ATTR_NUM = 5 # 属性数量
 C_INIT_ATTR_MIN = 10
 C_INIT_ATTR_MAX = 50
 
+# 初始属性数量
+C_INIT_ATTR_NUM = 100
+
 # 每级属性数量
 C_LEVEL_ATTR_NUM = 5
 
@@ -118,7 +121,7 @@ CONFIG_BEAST_B = {
 
 # ==================== 3. 页面基本配置 ====================
 st.set_page_config(page_title="梦幻西游双召唤兽对比模拟器", layout="wide")
-st.title("⚔️ 梦幻西游召唤兽全属性【双宠实时对比】模拟器")
+st.title("🦌 梦幻西游召唤兽全属性【双宠实时对比】模拟器")
 st.markdown("在左侧边栏分别配置召唤兽参数，右侧将实时渲染对比曲线。")
 
 # 设置 Matplotlib 支持中文显示
@@ -127,6 +130,13 @@ plt.rcParams['axes.unicode_minus'] = False
 
 
 # ==================== 4. 侧边栏：从配置区加载并动态绑定 UI ====================
+
+def validate_data(val, expect, greater_error, less_warning):
+    if val > expect:
+        st.sidebar.error(greater_error)
+        st.stop() # 强行中断后续计算，保护系统不报错
+    elif val < expect:
+        st.sidebar.warning(less_warning)
 
 # --- 召唤兽 A 侧边栏交互 ---
 st.sidebar.markdown(f"### 🔵 {CONFIG_BEAST_A['name']} 配置")
@@ -153,21 +163,27 @@ with col_init_A1:
 with col_init_A2:
     init_A[C_ATTR_MAG] = st.number_input("初始魔力 (A)", C_INIT_ATTR_MIN, C_INIT_ATTR_MAX, int(CONFIG_BEAST_A["initial_attrs"][C_ATTR_MAG]), key="mag_init_a")
     init_A[C_ATTR_ADJ] = st.number_input("初始耐力 (A)", C_INIT_ATTR_MIN, C_INIT_ATTR_MAX, int(CONFIG_BEAST_A["initial_attrs"][C_ATTR_ADJ]), key="adj_init_a")
+    
+init_points_A = np.sum(init_A)
+validate_data(init_points_A, C_INIT_ATTR_NUM,
+              f"❌ 警告：A 的0级初始属性总数应为 {C_INIT_ATTR_NUM} 点！(当前 {init_points_A:.0f} 点)",
+              f"❌ 警告：A 的0级初始属性总数应为 {C_INIT_ATTR_NUM} 点！(当前 {init_points_A:.0f} 点)")
 
 st.sidebar.markdown("#### 每级加点分配 (A)")
+col_plan_A1, col_plan_A2 = st.sidebar.columns(2)
 plan_A_live = np.zeros(5, dtype=int)
-plan_A_live[C_ATTR_CON] = st.sidebar.number_input("加点-体质 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_CON]), 1, key="p_con_a")
-plan_A_live[C_ATTR_MAG] = st.sidebar.number_input("加点-魔力 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_MAG]), 1, key="p_mag_a")
-plan_A_live[C_ATTR_STR] = st.sidebar.number_input("加点-力量 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_STR]), 1, key="p_str_a")
-plan_A_live[C_ATTR_ADJ] = st.sidebar.number_input("加点-耐力 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_ADJ]), 1, key="p_adj_a")
-plan_A_live[C_ATTR_AGI] = st.sidebar.number_input("加点-敏捷 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_AGI]), 1, key="p_agi_a")
+with col_plan_A1:
+    plan_A_live[C_ATTR_CON] = st.number_input("加点-体质 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_CON]), 1, key="p_con_a")
+    plan_A_live[C_ATTR_STR] = st.number_input("加点-力量 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_STR]), 1, key="p_str_a")
+    plan_A_live[C_ATTR_AGI] = st.number_input("加点-敏捷 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_AGI]), 1, key="p_agi_a")
+with col_plan_A2:
+    plan_A_live[C_ATTR_MAG] = st.number_input("加点-魔力 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_MAG]), 1, key="p_mag_a")
+    plan_A_live[C_ATTR_ADJ] = st.number_input("加点-耐力 (A)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_A["point_plan"][C_ATTR_ADJ]), 1, key="p_adj_a")
 
 total_points_A = np.sum(plan_A_live)
-if total_points_A > 5:
-    st.sidebar.error(f"❌ 警告：A 的升级加点总数不能超过 5 点！(当前 {total_points_A} 点)")
-    st.stop() # 强行中断后续计算，保护系统不报错
-elif total_points_A < 5:
-    st.sidebar.warning(f"⚠️ 提示：A 还有 {5 - total_points_A} 点未分配")
+validate_data(total_points_A, C_LEVEL_ATTR_NUM,
+              f"❌ 警告：A 的升级加点总数不能超过 {C_LEVEL_ATTR_NUM} 点！(当前 {total_points_A:.0f} 点)",
+              f"⚠️ 提示：A 还有 {(C_LEVEL_ATTR_NUM - total_points_A):.0f} 点未分配")
     
 st.sidebar.markdown("---")
 
@@ -197,20 +213,26 @@ with col_init_B2:
     init_B[C_ATTR_ADJ] = st.number_input("初始耐力 (B)", C_INIT_ATTR_MIN, C_INIT_ATTR_MAX, int(CONFIG_BEAST_B["initial_attrs"][C_ATTR_ADJ]), key="adj_init_b")
     init_B[C_ATTR_MAG] = st.number_input("初始魔力 (B)", C_INIT_ATTR_MIN, C_INIT_ATTR_MAX, int(CONFIG_BEAST_B["initial_attrs"][C_ATTR_MAG]), key="mag_init_b")
 
+init_points_B = np.sum(init_B)
+validate_data(init_points_B, C_INIT_ATTR_NUM,
+              f"❌ 警告：B 的0级初始属性总数应为 {C_INIT_ATTR_NUM} 点！(当前 {init_points_B:.0f} 点)",
+              f"❌ 警告：B 的0级初始属性总数应为 {C_INIT_ATTR_NUM} 点！(当前 {init_points_B:.0f} 点)")
+
 st.sidebar.markdown("#### 每级加点分配 (B)")
-plan_B_live = np.zeros(5)
-plan_B_live[C_ATTR_CON] = st.sidebar.number_input("加点-体质 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_CON]), 1, key="p_con_b")
-plan_B_live[C_ATTR_MAG] = st.sidebar.number_input("加点-魔力 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_MAG]), 1, key="p_mag_b")
-plan_B_live[C_ATTR_STR] = st.sidebar.number_input("加点-力量 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_STR]), 1, key="p_str_b")
-plan_B_live[C_ATTR_ADJ] = st.sidebar.number_input("加点-耐力 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_ADJ]), 1, key="p_adj_b")
-plan_B_live[C_ATTR_AGI] = st.sidebar.number_input("加点-敏捷 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_AGI]), 1, key="p_agi_b")
+col_plan_B1, col_plan_B2 = st.sidebar.columns(2)
+plan_B_live = np.zeros(5, dtype=int)
+with col_plan_B1:
+    plan_B_live[C_ATTR_CON] = st.number_input("加点-体质 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_CON]), 1, key="p_con_b")
+    plan_B_live[C_ATTR_STR] = st.number_input("加点-力量 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_STR]), 1, key="p_str_b")
+    plan_B_live[C_ATTR_AGI] = st.number_input("加点-敏捷 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_AGI]), 1, key="p_agi_b")
+with col_plan_B2:
+    plan_B_live[C_ATTR_MAG] = st.number_input("加点-魔力 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_MAG]), 1, key="p_mag_b")
+    plan_B_live[C_ATTR_ADJ] = st.number_input("加点-耐力 (B)", 0, C_LEVEL_ATTR_NUM, int(CONFIG_BEAST_B["point_plan"][C_ATTR_ADJ]), 1, key="p_adj_b")
 
 total_points_B = np.sum(plan_B_live)
-if total_points_B > 5:
-    st.sidebar.error(f"❌ 警告：B 的升级加点总数不能超过 5 点！(当前 {total_points_B} 点)")
-    st.stop() # 强行中断后续计算，保护系统不报错
-elif total_points_B < 5:
-    st.sidebar.warning(f"⚠️ 提示：B 还有 {5 - total_points_B} 点未分配")
+validate_data(total_points_B, C_LEVEL_ATTR_NUM,
+              f"❌ 警告：B 的升级加点总数不能超过 {C_LEVEL_ATTR_NUM} 点！(当前 {total_points_B:.0f} 点)",
+              f"⚠️ 提示：B 还有 {(C_LEVEL_ATTR_NUM - total_points_B):.0f} 点未分配")
 
 # ==================== 5. 核心数学模型计算函数 ====================
 levels = np.arange(0, LEVEL_NUM, 1)
